@@ -1,0 +1,973 @@
+---
+title: "DS5110 HW2"
+author: "Pratik Hotchandani"
+date: "2023-02-02"
+output: pdf_document
+---
+
+*PART A*
+
+**Problem 1**
+Import the dataset into R. Perform any preprocessing (tidying and cleaning) necessary for visualizing the data. Cite the source for the dataset. Describe the data, the variables, and any preprocessing steps you performed.
+
+```{r}
+library(dplyr)
+```
+
+```{r message=FALSE, warning=FALSE} 
+
+#Library to import the data
+library(readr)
+
+# This dataset on Video games sales is downloaded from Kaggle.
+# Dataset link - https://www.kaggle.com/datasets/rush4ratio/video-game-sales-with-ratings
+
+df <- read_csv("Video_Games_Sales_as_at_22_Dec_2016.csv")
+```
+
+This dataset is prepared by web scraping the website 'Metacritic'. This dataset is actually a combination of two datasets, one had the sales related information of the games and the second dataset has included game ratings by users and critics.
+
+These are the variables included:
+
+1. Name: Title of the video game
+
+2. Platform: Video gaming console on which the game is released.
+
+3. Year_of_Release: The year when the video game was released.
+
+4. Genre: The genre of the game.
+
+5. Publisher: The publisher who published the game.
+
+6. Developer: The Developer who developed the game.
+
+7. NA_Sales: Sales in North America.
+
+8. EU_Sales: Sales in Europe.
+
+9. JP_Sales: Sales in Japan.
+
+10. Other_Sales: Sales in other countries.
+
+11. Global_Sales: Overall sales of the title.
+
+12. Critic_Score: Aggregate score compiled by Metacritic staff.
+
+13. Critic_Count: The number or critics used in coming with the critic score.
+
+14. User_Score: Score by Metacritics subscribers.
+
+15. Rating: The ESRB rating of the game.
+
+16. User Count:  Number of users who gave the user_score.
+
+```{r}
+# summary of the dataset
+summary(df)
+```
+
+***Data pre processing***
+
+1. From the summary created, we can see that there are NA values in few columns. Removing the null values will help us understand the data better.
+
+```{r}
+
+df_cleaned <- na.omit(df)
+df_cleaned
+
+```
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+2. Next we will check if each column has a correct class-type.
+
+```{r}
+
+# Get the class of each column
+sapply(df_cleaned, class)
+
+```
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+3. We can see that the column 'Year of Release' and 'User_Score' are character type, it should be numeric. Let's see all the data from column 'Year of Release'.
+
+```{r}
+unique(df_cleaned$Year_of_Release)
+
+```
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+4. We can see that when removing the null values, "N/A" was missed since it is a character value. It is possible that for other character columns to have "N/A" values. Let us check for that.
+
+```{r}
+sum(df_cleaned$Name=="N/A")
+sum(df_cleaned$Platform=="N/A")
+sum(df_cleaned$Genre=="N/A")
+sum(df_cleaned$Publisher=="N/A")
+sum(df_cleaned$User_Score=="N/A")
+sum(df_cleaned$Developer=="N/A")
+sum(df_cleaned$Rating=="N/A")
+sum(df_cleaned$Year_of_Release=="N/A")
+```
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+5. From above results, we can see that "Year of Release" and "Publisher" columns has "N/A" value. Lets remove rows with N/A values.
+
+```{r}
+
+
+df_cleaned <- df_cleaned[df_cleaned$Year_of_Release != "N/A",]
+df_cleaned <- df_cleaned[df_cleaned$Publisher != "N/A",]
+
+```
+
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+6. Since there are no more "N/A" values, we can now convert both the columns to integer type.
+
+```{r}
+
+df_cleaned$Year_of_Release <- as.integer(df_cleaned$Year_of_Release)
+df_cleaned$User_Score <- as.integer(df_cleaned$User_Score)
+
+```
+
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+7. Comparing Critic score and User Score to see if they align with each other
+
+``` {r}
+summary(df_cleaned$Critic_Score)
+summary(df_cleaned$User_Score)
+```
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+8. Here we can see that the user score is out of 10 whereas, the Critic score is out of 100. We need to have both the columns in the same range to make useful insights.
+
+```{r}
+
+# So we are converting the critic score range from 0 to 10.
+df_cleaned$Critic_Score <- df_cleaned$Critic_Score / 10
+
+summary(df_cleaned$Critic_Score)
+summary(df_cleaned$User_Score)
+
+```
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+9. We have to check if there are any duplicates present in the cleaned dataset.
+
+```{r}
+
+duplicates <- df_cleaned[duplicated(df_cleaned), ]
+# Calculate the count of duplicates
+count_of_duplicates <- nrow(duplicates)
+count_of_duplicates
+```
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+10. There are no duplicate observations in the cleaned dataset.
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+11. Let's check if we can find anything wrong with the column 'Rating'.
+
+```{r}
+counts <- table(df_cleaned$Rating)
+counts
+```      
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+12. We can see that there are few ratings like 'AO','K-A', and 'RP' which has only one data. We should remove these observations so as to have better results.
+
+```{r}
+df_filtered <- df_cleaned[df_cleaned$Rating != "AO",]
+df_filtered <- df_filtered[df_filtered$Rating != "RP",]
+df_filtered <- df_filtered[df_filtered$Rating != "K-A",]
+
+counts <- table(df_filtered$Rating)
+counts
+```
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+13. Now that we have cleaned the ratings column, we are now ready for Visualization.
+
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+**Problem 2**
+Visualize something interesting to you from the dataset using ggplot2. Comment on what the visualization shows and any key conclusions.
+
+
+```{r}
+# Importing the library ggplot2 for plotting
+library(ggplot2)
+
+```
+
+
+1. Lets start the visualization from second column, which is "Platform".
+
+```{r}
+ggplot(data=df_filtered)+
+  geom_bar(aes(x=Platform,color=Platform,fill=Platform)) + 
+  theme(legend.position="bottom") +
+  labs(title = "PS2 has the highest number of video games made",
+       x = "Platform",
+       y = "Total number of games")
+
+```
+Observation:
+
+a. PS2 has the highest number of video games made for which user and critics rating are available. 
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+2. Next lets have a bar plot for year of release.
+
+```{r}
+ggplot(data=df_filtered)+
+  geom_bar(aes(x=Year_of_Release)) + 
+  theme(legend.position="bottom") + 
+  scale_x_continuous(limits = c(1980, 2020), 
+                      breaks = seq(1980, 2020, by = 5)) +
+  labs(title = "Year 2008 and 2007 has the highest number of video games released.",
+       x = "Year_of_Release",
+       y = "Total number of games")
+
+```
+
+Observations:
+
+a. Year 2007-2008 had the highest number of games released, with a combined total of around 1180 games.
+
+b. We can see a sudden jump in the number of games released after 2000, the trend goes negative after 2008.
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+3. Plotting the variable 'Genre'
+
+```{r}
+
+ggplot(data=df_filtered,fig.align="center",fig.width = 50)+
+  geom_bar(aes(x=Genre)) + 
+  theme(legend.position="bottom") + 
+  theme(axis.text.x = element_text(size = 8, angle = 90, face = "bold")) + 
+  labs(title = "Action genre is the most famous genre for video games",
+       x = "Video Game Genre",
+       y = "Total number of games")
+
+```
+
+Observation:
+
+a. Genre Action has the highest number of games released, followed by genre Sports.
+
+b. Genre Puzzle has the least number of games released.
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+4. Let's try to visualize how many games of the genre 'action' were released in each year.
+```{r}
+ggplot(data=df_filtered,fig.align="center",fig.width = 50,aes(x=Genre))+
+  geom_bar(data = subset(df_filtered, Genre == 'Action')) + facet_wrap(~Year_of_Release)  +
+  theme(legend.position="bottom") +
+  labs(title = "Year 2009 has the highest number of Action games released.",
+       x = "Action genre for each year",
+       y = "Total number of games")
+
+```
+
+Observation:
+
+1. The year 2009 has the most number of action games released.
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+4. Let's see what we can find by visualizing the top 15 publishers with the highest games published.
+ 
+```{r} 
+xy <- sort(table(df_filtered$Publisher),decreasing = TRUE)
+publisher_counts <- sort(table(df_filtered$Publisher), decreasing = TRUE)
+top_publishers <- names(publisher_counts)[1:15]
+df_filtered2 <- df_filtered[df_filtered$Publisher %in% top_publishers, ]
+top_publishers
+```
+Plotting a bar graph to visualize the data for top 15 publishers.
+
+```{r}
+ggplot(data=df_filtered2,aes(x=Publisher))+
+  geom_bar() + 
+  theme(legend.position="bottom") + 
+  theme(axis.text.x = element_text(size = 8, angle = 90, face = "bold")) + 
+  labs(title = "Electronic Arts is the most popular publisher of video games.",
+       x = "Publishers",
+       y = "Total number of games")
+```
+
+Observations:
+
+a. Electronic Arts is the most popular publisher of video games, with more than 825 games published. 
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+5. Lets see if we can find any relationship between the most common gaming console that is ps2 and top 15 publishers. For this, we have to then update the df_filtered2 to have only the PS2 data.
+
+```{r}
+df_ps2 <- df_filtered2[df_filtered2$Platform == "PS2",]
+```
+ 
+So now we have all the data with platform as PS2 and for the top 15 publishers.
+ 
+```{r}
+
+ggplot(data=df_ps2,fig.align="center",fig.width = 50,aes(x=Publisher))+
+  geom_bar(aes(fill=Publisher)) + facet_wrap(~Platform)  +
+  theme(axis.text.x = element_text(size = 8, angle = 90, face = "bold")) + 
+  labs(title = "Electronic arts has the highest number of games published for PS2",
+       x = "Publishers",
+       y = "Total number of games") + theme(legend.key.size = unit(0.2, "cm"))
+
+
+```
+
+Observations:
+
+1. Electronic arts is still the most famous video game publisher for the platform 'PS2'. 
+
+2. Sony Computer Entertainment stands second which was expected as the platform 'PS2' is developed by Sony.
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+6. Next we have sales columns, lets plot each sales column in a scatter plot
+
+```{r message=FALSE, warning=FALSE}
+
+
+ggplot(data=df_filtered,aes(x=Critic_Score,y=Global_Sales))+ geom_smooth() +
+  theme(legend.position="bottom") + 
+  scale_x_continuous(limits = c(0,10), 
+                      breaks = seq(0,10, by = 0.5)) +
+  theme(axis.text.x = element_text(size = 8, face = "bold")) + 
+  labs(title = "Global Sales increases sharply after the critic score of 8.5",
+       x = "Critic Score",
+       y = "Global Sales in millions")
+
+```
+
+Observations:
+
+a. Global Sales and Critic Score has a positive relationship, with sales increasing as the critic score increases.
+
+b. There is a sharp rise in the global sales of the video games after the critic score of 8.5.
+
+c. The least critic score is somewhere between 1.25 - 1.3 and the highest critic score is in the range 9.75 - 9.8 .
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+7. Plotting user score against global sales
+
+```{r message=FALSE, warning=FALSE} 
+
+
+ggplot(data=df_filtered,aes(x=User_Score,y= Global_Sales))+
+  geom_smooth() +geom_jitter() + scale_y_log10() + 
+  scale_x_continuous(limits = c(0,10), 
+                      breaks = seq(0,10, by = 0.5)) +
+  labs(title = "Global Sales increases as the User Score increases",
+       x = "User Score",
+       y = "Global Sales (log10 millions) ")
+
+  
+```
+
+Observation:
+
+a. Here also we see a general trend of global sales increasing as the user score increases.
+
+b. There are very few games with a critic score of more than 8.5, whereas there are no games with user score more than 9.5. This tells that users are more strict in giving scores in compare to the critics.
+
+c. The range 6.5 - 8.5, is the most dense.
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+8. Let's plot global sales along with genre of the game to see which genre is actually sold the highest.
+
+```{r message=FALSE, warning=FALSE}
+
+
+df_filtered %>%
+ggplot(aes(x=Genre, y= Global_Sales)) +
+geom_boxplot() +  scale_y_log10() + 
+stat_summary(fun = median, geom = "text",
+               aes(label = round(..y.., 2)),
+               vjust = -0.5, size = 3)+ 
+  theme(plot.title = element_text(hjust=0.5)) + 
+  theme(axis.text.x = element_text(size = 10,  angle = 90,face = "bold")) + 
+  labs(title = "Genre Sports has the highest number of global sales.",
+       x = "Genre",
+       y = "Global Sales (log10 millions) ")
+
+
+```
+Observation:
+
+a. Here we can see that genre like puzzle, strategy, and adventure have really low count of sales in compare to other genre.
+
+b. Sports genre has the highest number of sales, with the median value around 0.39 in log10 millions.
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+9. Plotting sales from each continent to see how they varied from time
+
+```{r}
+
+ggplot(data=df_filtered,fig.align="center",fig.width = 50)+
+  geom_line(aes(x=Year_of_Release, y= NA_Sales))   + 
+  scale_x_continuous(limits = c(1980, 2020), 
+                      breaks = seq(1980, 2020, by = 2)) +
+  theme(legend.position="bottom") + 
+  theme(axis.text.x = element_text(size = 8, angle = 90, face = "bold")) + 
+  labs(title = "Total sales in North America based on year of release",
+       x = " Year of Release",
+       y = "Sales in North America (millions)")
+
+
+
+
+ggplot(data=df_filtered,fig.align="center",fig.width = 50)+
+  geom_line(aes(x=Year_of_Release, y= EU_Sales))   +
+  theme(legend.position="bottom") +  
+  scale_x_continuous(limits = c(1980, 2020), 
+                      breaks = seq(1980, 2020, by = 2)) +
+  theme(axis.text.x = element_text(size = 8, angle = 90, face = "bold"))+ 
+  labs(title = "Total sales in Europe based on year of release",
+       x = " Year of Release",
+       y = "Sales in Europe (millions)")
+
+
+
+ggplot(data=df_filtered,fig.align="center",fig.width = 50)+
+  geom_line(aes(x=Year_of_Release, y= JP_Sales))   +
+  theme(legend.position="bottom") + 
+  scale_x_continuous(limits = c(1980, 2020), 
+                      breaks = seq(1980, 2020, by = 2)) +
+  theme(axis.text.x = element_text(size = 8, angle = 90, face = "bold")) + 
+  labs(title = "Total sales in Japan based on year of release",
+       x = " Year of Release",
+       y = "Sales in Japan (millions)")
+
+
+
+ggplot(data=df_filtered,fig.align="center",fig.width = 50)+
+  geom_line(aes(x=Year_of_Release, y= Other_Sales))   +
+  theme(legend.position="bottom") + 
+  scale_x_continuous(limits = c(1980, 2020), 
+                      breaks = seq(1980, 2020, by = 2)) +
+  theme(axis.text.x = element_text(size = 8, angle = 90, face = "bold")) + 
+  labs(title = "Total sales in other regions based on year of release",
+       x = " Year of Release",
+       y = "Sales in all other regions (millions)")
+
+
+ggplot(data=df_filtered,fig.align="center",fig.width = 50)+
+  geom_line(aes(x=Year_of_Release, y= Global_Sales))   +
+  theme(legend.position="bottom") + 
+  scale_x_continuous(limits = c(1980, 2020), 
+                      breaks = seq(1980, 2020, by = 2)) +
+  theme(axis.text.x = element_text(size = 8, angle = 90, face = "bold")) + 
+  labs(title = "Global sales based on year of release",
+       x = " Year of Release",
+       y = "Global Sales (millions)")
+
+
+```
+Observation:
+
+a. Sales in North America, Europe and globally combined increased rapidly in the year 2005, which followed a sharp fall in the same year as well.
+
+b. In Japan, there was a continue increase and decrease in the video games sales,with the highest games sold in the year  2005 - 2006.
+
+c. Total Sales in other regions were highest in the year 2003 - 2004. 
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+10. To research more on what genre of games are sold between the year 1995-2015 in Japan, we'll have facet of top genre played in japan. 
+
+```{r}
+
+# we want to see how top 5 genres of global sales did in japan in the year 1996-2015
+# so first have a subset of data of the games sold between the year 1995-2015
+
+df_tp <- df_filtered[df_filtered$Year_of_Release> 1995,]
+df_tp2 <- df_tp[df_tp$Year_of_Release<2016,]
+
+# df_tp2 consists of data between the year 1995-2015
+xy <- sort(table(df_tp2$Genre),decreasing = TRUE)
+genre_counts <- sort(table(df_tp2$Genre), decreasing = TRUE)
+top_genre <- names(genre_counts)[1:5]
+
+df_tp3 <- df_tp2[df_tp2$Genre %in% top_genre, ]
+
+# Now that we have top 5 genres played in the year 1995-2015, we can plot a graph to
+# see how each of these genre did in Japan
+
+ggplot(data=df_tp3,fig.align="center",fig.width = 50)+
+  geom_line(aes(x=Year_of_Release, y= JP_Sales))   + facet_wrap(~Genre,nrow=3) +
+  theme(legend.position="bottom") + 
+  theme(axis.text.x = element_text(size = 8, angle = 90, face = "bold")) + 
+  labs(title = "Total sales in Japan based on year of release",
+       x = " Year of Release",
+       y = "Sales in Japan (millions)")
+
+
+```
+
+Observations:
+
+a. Genre Role-Playing has the highest number of sales in Japan, with the highest number of games sold in the year 2008-2009.
+
+b. Genre Shooting has the lowest number of sales in Japan, with the highest sold in the year 2015.
+
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+
+11. Let's plot the developer column to see the top 15 developers.
+```{r}
+
+xy <- sort(table(df_filtered$Developer),decreasing = TRUE)
+
+
+developer_counts <- sort(table(df_filtered$Developer), decreasing = TRUE)
+top_developers <- names(developer_counts)[1:15]
+
+df_filtered3 <- df_filtered[df_filtered$Developer %in% top_developers, ]
+
+ggplot(data=df_filtered3,aes(x=Developer))+
+  geom_bar(aes(fill=Developer)) + 
+  theme(legend.position="bottom") + 
+  theme(axis.text.x = element_text(size = 8, angle = 90, face = "bold")) + 
+  labs(title = "EA Canada is the most popular developer of video games.",
+       x = "Developers",
+       y = "Total number of games")
+
+
+```
+
+Observations:
+
+a. EA Canada tops the chart following by EA Sports.
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+12. Let's try to visualize the what are the different types of genres on which video games have been developed by EA Canada.
+
+```{r}
+dfEACanada <- df_filtered[df_filtered$Developer == "EA Canada",]
+
+
+ggplot(data=dfEACanada,aes(x=Genre))+
+  geom_bar(aes(fill=Genre)) + 
+  theme(legend.position="bottom") +
+  theme(axis.text.x = element_text(size = 8, angle = 90, face = "bold")) + 
+  labs(title = "EA Canada has developed highest number of games in the genre Sports",
+       x = "Genre",
+       y = "Total number of games")
+
+```
+
+Observation:
+
+a. EA Canada has developed the highest number of games in the genre Sports, and the least in genre Shooter.
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+13. Let Visualize how many games are developed for each rating.
+
+```{r}
+
+plot <- ggplot(data=df_filtered,aes(x=Rating))+
+  geom_bar(aes(fill=Rating)) + 
+  theme(legend.position="bottom") +
+  theme(axis.text.x = element_text(size = 10, face = "bold")) + 
+  labs(title = "ESRB rating 'T' has the highest number of games developed.",
+       x = "ESRB Rating",
+       y = "Total number of games") + 
+png("ESRBrating.png", width = 800, height = 600, res = 120)
+print(plot)
+dev.off()
+
+```
+
+Observations:
+
+a. ESRB rating 'T' has the highest number of games developed.
+
+b. ESRB rating 'E10+' has the lowest number of games developed.
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+
+13. Let's visualize which rating has the highest number of global sales.
+
+```{r}
+
+plot<- ggplot(data=df_tp3,fig.align="center",fig.width = 50)+
+  geom_line(aes(x=Year_of_Release, y= Global_Sales))   + facet_wrap(~Rating) +
+  theme(legend.position="bottom") + 
+  theme(axis.text.x = element_text(size = 8, angle = 90, face = "bold")) + 
+  labs(title = "ESRB Rating 'E' has the highest global sales.",
+       x = " Year of Release",
+       y = "Global Sales (millions)")
+png("ESRBratingSales.png", width = 800, height = 600, res = 120)
+print(plot)
+dev.off()
+
+```
+
+
+Observations:
+
+a. ESRB rating 'E' has the highest global sales. 
+
+b. ESRB rating 'T' is the rating with the highest number of games developed, but they have very less sale.
+
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+
+*PART B*
+
+**Problem 3**
+Create a tidy data frame that includes columns for:
+• School ID
+• School name
+• Sport code
+• Sport name
+• Year
+• APR
+All other columns can be discarded.
+Use your tidied dataset to visualize the distributions of APRs over time. How does the distribution of APRs change year-to-year from 2004 to 2014?
+
+```{r message=FALSE, warning=FALSE}
+library(dplyr)
+library(tidyverse)
+
+df1 <- read_tsv("26801-0001-Data.tsv",show_col_types = FALSE)
+tidy_data2 <- df1 %>%
+  select(SCL_UNITID	
+, SCL_NAME	
+, SPORT_CODE	
+, SPORT_NAME	
+, ACADEMIC_YEAR	
+, APR_RATE_2014_1000	
+, APR_RATE_2013_1000	
+, APR_RATE_2012_1000	
+, APR_RATE_2011_1000	
+, APR_RATE_2010_1000	
+, APR_RATE_2009_1000	
+, APR_RATE_2008_1000	
+, APR_RATE_2007_1000	
+, APR_RATE_2006_1000	
+, APR_RATE_2005_1000	
+, APR_RATE_2004_1000	
+)
+
+tidy_data2
+
+```
+
+
+We need to tidy up the data.
+So, first we will use pivot_longer to increase the number of rows by adding columns 'APR_RATE_2004_1000' through 'APR_RATE_2014_1000' into rows.
+
+``` {r}
+tidy_dataYear <-pivot_longer(tidy_data2, cols=`APR_RATE_2004_1000`:`APR_RATE_2014_1000`,
+                             names_to = "Year_Acad", values_to = "APR_Rate")
+
+head(tidy_dataYear,20)
+
+```
+
+
+We need to rename the values in the column Year_Acad.
+The updated value should only have year value.
+
+
+```{r}
+df2 <- lapply(tidy_dataYear$Year_Acad, function(x) strsplit(x, "_")[[1]][3])
+
+df2 <-  data.frame(col1 = unlist(df2), row.names = NULL)
+```
+
+We will now create a new column with the name Academic_Year_APR
+```{r}
+
+tidy_dataYear$Academic_Year_APR <- df2$col1
+```
+
+Let's remove the column Year_Acad which is of no further use
+```{r}
+tidy_dataYear <- select(tidy_dataYear, -Year_Acad)
+tidy_dataYear
+```
+
+
+Now that we have cleaned the data and completed data preprocessing, we can start visualization
+```{r}
+# Generating a scatter plot to get general idea of the data
+ggplot(data=tidy_dataYear,fig.align="center",fig.width = 50)+
+  geom_point(aes(x=Academic_Year_APR, y=APR_Rate ))   +
+  theme(legend.position="bottom") + 
+  theme(axis.text.x = element_text(size = 8, face = "bold")) + 
+  labs(title = "APR Rate by academic year.",
+       x = " ACADEMIC YEAR",
+       y = "APR Rate")
+
+```
+
+We can see that there are some negative values for APR, we should remove those observations to have better visualization of the correct data.
+
+```{r}
+# Removing the observations which hav APR<0
+tidy_dataYearUpdated <- tidy_dataYear[tidy_dataYear$APR_Rate>0,]
+tidy_dataYearUpdated
+```
+
+```{r}
+#jitter plot
+ggplot(data=tidy_dataYearUpdated,fig.align="center",fig.width = 50)+
+  geom_jitter(aes(x=Academic_Year_APR, y=APR_Rate, color=Academic_Year_APR ), alpha=1/5)   +
+  theme(plot.title = element_text(hjust=0.5)) + 
+  theme(axis.text.x = element_text(size = 10, face = "bold")) + 
+  labs(title = "The APR Rate follows a increasing trend after the year 2006",
+       x = " ACADEMIC YEAR",
+       y = "APR Rate")
+
+```
+
+Let's try using boxplot to find if there is any valuable insight that we can find from the median values.
+
+```{r message=FALSE, warning=FALSE}
+
+
+df<-as.data.frame(tidy_dataYearUpdated)
+
+df %>%
+ggplot(aes(Academic_Year_APR,APR_Rate)) +
+geom_boxplot(aes(color=Academic_Year_APR)) +
+stat_summary(fun = median, geom = "text",
+               aes(label = round(..y.., 2)),
+               vjust = -0.5, size = 3)+ 
+  theme(plot.title = element_text(hjust=0.5)) + 
+  theme(axis.text.x = element_text(size = 10, face = "bold")) + 
+  labs(title = "The APR Rate follows a increasing trend after the year 2006",
+       x = " ACADEMIC YEAR",
+       y = "APR Rate")
+
+
+
+```
+
+
+Observations:
+
+a. Years 2004, 2005 and 2006 have almost similar APR Rates, with median value being 971, 970 and 971 respectively.
+
+b. The APR Rate starts increasing after 2006 and is the highest in the year 2014 with the median value to be 989.
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+
+***Problem 4***
+We would like to compare APRs between men’s and women’s sports. Transform your tidied dataset to remove mixed sports, and create a column indicating the gender division of each sport. (You may assume sport codes 1-18 are men’s, and 19-37 are women’s.) Visualize the distributions of APRs over time again, but broken down by gender division. How do the average APRs compare between men’s and women’s sports? Does this relationship hold true across each year from 2004 to 2014?
+--> 
+
+We have to filter the data with sport code belonging in the range 1-18 for men and 19-37 for women.
+
+```{r}
+df1 <- tidy_dataYearUpdated[tidy_dataYearUpdated$SPORT_CODE >=1 
+                            & tidy_dataYearUpdated$SPORT_CODE <=18,]
+
+df2 <- tidy_dataYearUpdated[tidy_dataYearUpdated$SPORT_CODE >=19
+                            & tidy_dataYearUpdated$SPORT_CODE <=37,]  
+
+
+# creating a final data.frame for observations with sport code in the range of 1 to 37.
+dfFinal <- rbind(df1, df2)
+
+```
+
+Now we have to create Column gender based on the sport codes.
+```{r}
+dfFinal$Gender <- ifelse(dfFinal$SPORT_CODE >=1 & dfFinal$SPORT_CODE<=18,c("Men"),c("Women"))
+```
+
+We need to find the average APR rate for each year.
+
+To calculate average APR rate for each year, we need
+a. Total count of observations for each year.
+b. Sum of APR for each year. 
+c. Calculate average APR for each year.
+
+```{r}
+
+for (year in 2004:2014) {
+  # Select observations for the current year
+  df_year <- dfFinal[dfFinal$Academic_Year_APR == year, ]
+  
+  # Calculate the total number of observations for the current year
+  n <- nrow(df_year)
+  
+  # Calculate the sum of APR Rate for the current year
+  sum_of_values <- sum(df_year$APR_Rate)
+  averageAPR <- sum_of_values/n
+
+  # indices of the observations where Academic_Year_APR == year
+  indices <- which(dfFinal$Academic_Year_APR == year)
+
+  # Calculate the number of matches
+  n <- nrow(dfFinal[indices, ])
+  
+  # Assigning the average APR rate
+  if (n > 0) {
+    dfFinal[c(indices),"Average_APR"] <- averageAPR
+  }
+  
+}
+```
+
+```{r}
+ggplot(data=dfFinal,fig.align="center",fig.width = 50)+
+  geom_point(aes(x=Academic_Year_APR, y=Average_APR , color = Gender))   +
+  theme(legend.position="bottom") +  facet_grid(~Gender) +
+  theme(axis.text.x = element_text(size = 10, angle = 90, face = "bold")) + 
+  labs(title = "Men's and Women's sports have similar APR rates",
+       x = " Academic Year",
+       y = "Average APR Rate")
+
+```
+
+Observations:
+
+a. The average APR rate for men's and women's sports is similar. The APR rate increases drastically from the year 2006. 
+
+b. The relationship in APR rate for both men's and women's sports hold true across each year from 2004 to 2014. The highest APR rate is in year 2014 and the lowest is in year 2006.
+
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+***Question 5***
+We would like to further visualize APR by both gender and specific sports. Process the the sport names to remove the “Men’s” and “Women’s” prefixes so that we can compare men’s and women’s teams within each sport. Then visualize the distribution of APR for both men’s and women’s teams for each sport. Are there sports where men’s and women’s teams have similar APRs?
+
+```{r}
+library(stringr)
+```
+
+```{r}
+
+# now we have to rename the values in SportName column by removing 
+# the Men's and Women's string in each observation
+
+dfFinal$SportNameUpdataed <- str_remove(dfFinal$SPORT_NAME,"Men's")
+
+dfFinal <- select(dfFinal, -SPORT_NAME)
+```
+
+
+```{r}
+dfFinal$SportNameUpdataed <- str_remove(dfFinal$SportNameUpdataed,"Women's")
+```
+
+
+Now we are plotting each sport's APR for both men and women
+
+```{r  fig.width=8, fig.height=8}
+
+ggplot(data=dfFinal,fig.align="center",fig.width = 50)+
+  geom_jitter(aes(x=Gender, y=APR_Rate , color=Gender, fill= Gender))   +
+  theme(legend.position="bottom") +  facet_wrap(~ SportNameUpdataed,nrow=3) +
+  theme(axis.text.x = element_text(size = 8, angle = 90, face = "bold")) + 
+  labs(title = "APR rate for each sport divided by gender",
+       x = " Gender",
+       y = "APR Rate") 
+
+
+```
+Let's try plotting a boxplot to observe more on the relationship.
+
+```{r  fig.width=10, fig.height=20, message=FALSE, warning=FALSE}
+
+df<-as.data.frame(dfFinal)
+
+df %>%
+ggplot(aes(Gender,APR_Rate)) +
+geom_boxplot(aes(color=Gender)) + facet_wrap(~ SportNameUpdataed,nrow=6) +
+stat_summary(fun = median, geom = "text",
+               aes(label = round(..y.., 2)),
+               vjust = -0.5, size = 3)+ 
+  theme(plot.title = element_text(hjust=0.5)) + theme(legend.position="bottom") + 
+  theme(axis.text.x = element_text(size = 10, face = "bold"))+ 
+  labs(title = "APR rate for each sport divided by gender",
+       x = " Gender",
+       y = "APR Rate") 
+
+```
+
+Observations:
+
+
+A) From the above graph, we can see that there are few sports that both genders dont play, They are:
+
+1. Bowling, Field Hockey, Rowing, softball these are the sports that men don't play.
+
+2. Wrestling, Baseball, Football are the sports that women don't play.
+
+
+B) There are some sports where APR rate for both men and women are similar, like Cross Country, Fencing, Golf, Gymnastics, Skiing, Tennis. 
+
+C) For all these sports, the median value of APR Rate is same. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
